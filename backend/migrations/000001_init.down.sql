@@ -1,0 +1,14 @@
+DROP TABLE IF EXISTS messages;
+DROP TABLE IF EXISTS conversation_members;
+DROP TABLE IF EXISTS conversations;
+DROP TABLE IF EXISTS point_transactions;
+DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS product_images;
+DROP TABLE IF EXISTS product_translations;
+DROP TABLE IF EXISTS products;
+DROP TABLE IF EXISTS category_translations;
+DROP TABLE IF EXISTS categories;
+DROP TABLE IF EXISTS addresses;
+DROP TABLE IF EXISTS password_resets;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS languages;

@@ -1,0 +1,646 @@
+<title>Quan hệ Sổ Tem</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<style>
+/* Layout: one reading column (max 1080px), same stamp-sheet identity as er_diagram.html.
+   Order: relationship cards by domain → Chen sheet → Crow's Foot sheet → side-by-side comparison → suggestions */
+:root {
+  --paper: #f6f7f9;
+  --surface: #ffffff;
+  --ink: #18223a;
+  --muted: #5a6478;
+  --line: #d9dee8;
+  --accent: #1f4fa3;      /* ink blue of a postal cancellation */
+  --stamp: #b3362f;       /* postmark red: keys and cardinalities */
+  --accent-soft: #e6edf9;
+  --zone: #eef1f6;
+  --font-body: "Be Vietnam Pro", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper: #10141d; --surface: #171c28; --ink: #e5e9f2; --muted: #9aa4b8;
+    --line: #2b3346; --accent: #7fa6ec; --stamp: #ec7f76; --accent-soft: #1d2840; --zone: #1c2231;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #10141d; --surface: #171c28; --ink: #e5e9f2; --muted: #9aa4b8;
+  --line: #2b3346; --accent: #7fa6ec; --stamp: #ec7f76; --accent-soft: #1d2840; --zone: #1c2231;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.6;
+  padding-inline: 20px;
+  padding-block: 40px 64px;
+}
+.wrap { max-width: 1080px; margin: 0 auto; display: grid; gap: 56px; }
+section { display: grid; gap: 16px; min-width: 0; }
+
+header { display: grid; gap: 10px; }
+.eyebrow { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+h1 { font-size: clamp(26px, 4vw, 36px); line-height: 1.2; margin: 0; text-wrap: balance; font-weight: 700; }
+h2 { font-size: 22px; margin: 0; text-wrap: balance; }
+h3 { margin: 0; text-wrap: balance; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 70ch; }
+.prose { max-width: 72ch; display: grid; gap: 10px; }
+code { font-family: var(--font-mono); font-size: .88em; }
+nav.toc { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+nav.toc a { font-size: 13px; padding: 3px 11px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 500; text-decoration: none; }
+nav.toc a:hover, nav.toc a:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* Summary strip */
+.tally { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.tally div { background: var(--surface); padding: 12px 14px; display: grid; gap: 2px; }
+.tally b { font: 700 24px var(--font-mono); color: var(--accent); font-variant-numeric: tabular-nums; }
+.tally span { font-size: 13px; color: var(--muted); line-height: 1.4; }
+
+/* Relationship cards */
+.group { display: grid; gap: 12px; }
+.group-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.group-head h3 { font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.group-head p { font-size: 13.5px; color: var(--muted); }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); gap: 14px; align-items: start; }
+.rc { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; display: grid; min-width: 0; }
+.rc.missing { border-style: dashed; }
+.rc-head { display: flex; gap: 10px; align-items: baseline; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.rid { font: 700 11px var(--font-mono); color: var(--stamp); border: 1.5px solid var(--stamp); border-radius: 3px; padding: 0 5px; transform: rotate(-4deg); flex: none; }
+.rc-head h4 { margin: 0; font-size: 14.5px; font-weight: 600; line-height: 1.4; min-width: 0; }
+.rc-head h4 code { font-weight: 600; }
+.verb { color: var(--accent); font-style: italic; font-weight: 500; }
+.notation { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; padding: 10px 14px 4px; font: 600 12px var(--font-mono); }
+.notation .n { color: var(--stamp); font-variant-numeric: tabular-nums; }
+.notation svg { width: 100%; height: 22px; color: var(--ink); }
+.notation-names { display: flex; justify-content: space-between; padding: 0 14px 8px; font: 400 11.5px var(--font-mono); color: var(--muted); gap: 8px; }
+.rc dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; padding: 8px 14px; border-top: 1px solid var(--line); font-size: 13px; }
+.rc dt { color: var(--muted); }
+.rc dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.rc .read, .rc .note { padding: 8px 14px; font-size: 13.5px; border-top: 1px solid var(--line); }
+.rc .note { color: var(--muted); }
+.rc .note b { color: var(--ink); font-weight: 600; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px 10px; }
+.tag { font-size: 11.5px; padding: 1px 8px; border-radius: 999px; background: var(--zone); color: var(--muted); font-weight: 500; }
+.tag.hot { background: var(--accent-soft); color: var(--accent); }
+.pair { background: var(--accent-soft); color: var(--ink); border-radius: 6px; padding: 10px 14px; font-size: 13.5px; }
+
+/* Diagram sheets */
+.sheet {
+  background: var(--surface);
+  padding: 18px;
+  border-radius: 4px;
+  -webkit-mask: radial-gradient(circle 5px at 50% 50%, #0000 98%, #000) -9px -9px / 18px 18px,
+                linear-gradient(#000 0 0) 9px 9px / calc(100% - 18px) calc(100% - 18px) no-repeat;
+          mask: radial-gradient(circle 5px at 50% 50%, #0000 98%, #000) -9px -9px / 18px 18px,
+                linear-gradient(#000 0 0) 9px 9px / calc(100% - 18px) calc(100% - 18px) no-repeat;
+}
+.sheet-inner { border: 1px dashed var(--line); padding: 12px; overflow-x: auto; }
+figure { margin: 0; display: grid; gap: 10px; min-width: 0; }
+.dia { display: block; width: 100%; min-width: 920px; height: auto; }
+.hint { font-size: 13.5px; color: var(--muted); max-width: 82ch; }
+
+.legend { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); gap: 8px 18px; font-size: 13px; }
+.legend div { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.legend svg { flex: none; width: 64px; height: 30px; color: var(--ink); }
+
+/* Chen */
+.chen .ln { fill: none; stroke: var(--muted); stroke-width: 1.4; }
+.chen .ln2 { fill: none; stroke: var(--ink); stroke-width: 5; }
+.chen .gap { fill: none; stroke: var(--surface); stroke-width: 1.8; }
+.chen .ent { fill: var(--surface); stroke: var(--ink); stroke-width: 1.4; }
+.chen .rel { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.4; }
+.chen .att { fill: var(--surface); stroke: var(--muted); stroke-width: 1.1; }
+.chen .att.derived { stroke-dasharray: 4 3; }
+.chen .ename { font: 600 12px var(--font-mono); fill: var(--ink); }
+.chen .rname { font: 600 11.5px var(--font-body); fill: var(--accent); }
+.chen .aname { font: 400 11px var(--font-mono); fill: var(--ink); }
+.chen .ul { stroke: var(--stamp); stroke-width: 1.2; }
+.chen .ul.partial { stroke-dasharray: 3 2; }
+.chen .card { font: 700 12.5px var(--font-mono); fill: var(--stamp); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+
+/* Crow's Foot */
+.cf .frame { fill: var(--surface); stroke: var(--ink); stroke-width: 1.2; }
+.cf .frame.hub { stroke: var(--accent); stroke-width: 2.2; }
+.cf .head { fill: var(--zone); }
+.cf .sep { stroke: var(--line); stroke-width: 1; }
+.cf .tname { font: 600 12.5px var(--font-mono); fill: var(--ink); }
+.cf .tsub { font: 400 11px var(--font-body); fill: var(--muted); }
+.cf .cname { font: 400 12px var(--font-mono); fill: var(--ink); }
+.cf .target { font: 400 10.5px var(--font-body); fill: var(--muted); }
+.cf .more { font: 400 10.5px var(--font-body); fill: var(--muted); }
+.cf .badge { fill: none; stroke-width: 1.2; }
+.cf .badge.pk { stroke: var(--stamp); } .cf .badge-t.pk { fill: var(--stamp); }
+.cf .badge.fk { stroke: var(--accent); } .cf .badge-t.fk { fill: var(--accent); }
+.cf .badge-t { font: 700 9px var(--font-mono); }
+.cf .edge { fill: none; stroke: var(--muted); stroke-width: 1.4; cursor: pointer; }
+.cf .edge.opt .ln { stroke-dasharray: 5 4; }
+.cf .edge .hit { stroke: transparent; stroke-width: 12; }
+.cf .edge circle { fill: var(--surface); }
+.cf .edge:hover, .cf .edge:focus { stroke: var(--accent); stroke-width: 2.2; outline: none; }
+.cf .patch { fill: var(--surface); }
+.cf text { pointer-events: none; }
+
+/* Mini side-by-side examples */
+.duo { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 14px; }
+.duo figure { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 14px; }
+.duo figcaption { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.duo .scroll { overflow-x: auto; }
+.duo svg { display: block; width: 100%; min-width: 380px; height: auto; color: var(--ink); }
+.mini text { font-family: var(--font-mono); font-size: 12px; fill: var(--ink); }
+.mini .r { font-family: var(--font-body); font-weight: 600; fill: var(--accent); }
+.mini .c { font-weight: 700; fill: var(--stamp); }
+.mini .s { font-family: var(--font-body); font-size: 11px; fill: var(--muted); }
+.mini .box { fill: var(--surface); stroke: var(--ink); stroke-width: 1.3; }
+.mini .dia-s { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.3; }
+.mini .ell { fill: var(--surface); stroke: var(--muted); }
+.mini .l { fill: none; stroke: var(--muted); stroke-width: 1.4; }
+.mini .k { fill: none; stroke: currentColor; stroke-width: 1.4; }
+.mini .k circle, .mini circle.k { fill: var(--surface); }
+
+/* Tables */
+.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+table.cmp { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 680px; }
+table.cmp th, table.cmp td { text-align: left; padding: 9px 14px; border-top: 1px solid var(--line); vertical-align: top; }
+table.cmp thead th { border-top: 0; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; background: var(--accent-soft); }
+table.cmp tbody th { font-weight: 600; white-space: nowrap; }
+
+ol.fix { margin: 0; padding-left: 22px; display: grid; gap: 10px; max-width: 80ch; }
+ol.fix li::marker { color: var(--stamp); font-weight: 700; font-family: var(--font-mono); }
+ol.fix pre { margin: 6px 0 0; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 8px 12px; overflow-x: auto; font: 12.5px/1.5 var(--font-mono); }
+footer { font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px; }
+@media (prefers-reduced-motion: no-preference) { nav.toc a { transition: background .15s; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Thiết kế CSDL · Đọc kèm er_diagram.html</div>
+    <h1>Phân tích quan hệ và hai cách vẽ sơ đồ ER cho ứng dụng tem</h1>
+    <p class="lead">Mỗi khóa ngoại trong 13 bảng là một quan hệ. Trang này đọc từng quan hệ theo hai chiều, ghi lực lượng tối thiểu và tối đa, rồi vẽ lại toàn bộ mô hình theo ký hiệu Chen và Crow's Foot để so sánh.</p>
+    <nav class="toc" aria-label="Mục lục">
+      <a href="#phan-tich">Phân tích quan hệ</a><a href="#chen">Sơ đồ Chen</a><a href="#crowsfoot">Sơ đồ Crow's Foot</a><a href="#so-sanh">So sánh</a><a href="#de-xuat">Đề xuất</a>
+    </nav>
+  </header>
+
+  <section id="phan-tich">
+    <h2>Phân tích từng quan hệ</h2>
+    <div class="prose">
+      <p>Mỗi thẻ đọc một quan hệ theo quy ước Crow's Foot: con số đứng cạnh bảng nào cho biết <b>có bao nhiêu dòng của bảng đó</b> ứng với một dòng của bảng bên kia. Ví dụ <code>users 1..1 ── 0..N products</code> nghĩa là mỗi tem có đúng 1 user, và mỗi user có từ 0 đến N tem.</p>
+      <p>Số bên trái dấu <code>..</code> là <b>tối thiểu</b> (0 là tuỳ chọn, 1 là bắt buộc), số bên phải là <b>tối đa</b>.</p>
+    </div>
+    <div class="tally">
+      <div><b>18</b><span>khóa ngoại, mỗi cái là một quan hệ</span></div>
+      <div><b>10</b><span>quan hệ 1–N trực tiếp</span></div>
+      <div><b>4</b><span>quan hệ N–N, tách qua bảng trung gian (8 khóa ngoại)</span></div>
+      <div><b>2</b><span>quan hệ tuỳ chọn, FK được để trống</span></div>
+      <div><b>1</b><span>quan hệ ẩn, cột có nhưng chưa khai báo FK</span></div>
+    </div>
+    <div id="groups" style="display:grid;gap:36px"></div>
+  </section>
+
+  <section id="chen">
+    <h2>Sơ đồ theo ký hiệu Chen</h2>
+    <p class="prose">Chen vẽ ở mức khái niệm. Bốn bảng trung gian không còn là hộp riêng mà trở thành <b>hình thoi có thuộc tính</b>. Vì vậy sơ đồ chỉ còn 9 thực thể và 14 quan hệ. Để dễ đọc, sơ đồ chỉ vẽ thuộc tính khóa và thuộc tính của quan hệ.</p>
+    <figure>
+      <div class="sheet"><div class="sheet-inner">
+        <svg id="chen-svg" class="dia chen" viewBox="0 0 1420 930" role="img" aria-label="Sơ đồ ER ký hiệu Chen: 9 thực thể, 14 quan hệ hình thoi, thuộc tính khóa dạng elip."></svg>
+      </div></div>
+      <div class="legend" id="chen-legend"></div>
+    </figure>
+  </section>
+
+  <section id="crowsfoot">
+    <h2>Sơ đồ theo ký hiệu Crow's Foot</h2>
+    <p class="prose">Crow's Foot vẽ ở mức logic: mỗi bảng thật là một hộp, mỗi khóa ngoại là một đường. Bố cục giống sơ đồ trong <code>er_diagram.html</code>, nhưng mỗi đầu đường có thêm ký hiệu <b>tối thiểu</b> (vòng tròn là 0, vạch là 1). Sơ đồ cũng vẽ thêm đường <code>users.language_code → languages</code> mà bản gốc bỏ qua.</p>
+    <figure>
+      <div class="sheet"><div class="sheet-inner">
+        <svg id="cf-svg" class="dia cf" viewBox="0 0 1345 600" role="img" aria-label="Sơ đồ ER ký hiệu Crow's Foot: 13 bảng, 18 đường khóa ngoại, mỗi đầu đường có ký hiệu tối thiểu và tối đa."></svg>
+      </div></div>
+      <div class="legend" id="cf-legend"></div>
+      <p class="hint">Di chuột vào một đường để tô sáng. Nét đứt là FK cho phép NULL. Dòng PK/FK trong mỗi hộp là các cột khóa; cột thường xem ở trang er_diagram.html.</p>
+    </figure>
+  </section>
+
+  <section id="so-sanh">
+    <h2>So sánh hai ký hiệu</h2>
+    <div class="duo">
+      <figure>
+        <figcaption>R3 · 1–N theo Chen</figcaption>
+        <div class="scroll"><svg class="mini" viewBox="0 0 520 96" aria-label="USERS 1, đăng bán, N PRODUCTS, phía PRODUCTS nét đôi">
+          <line class="l" x1="130" y1="44" x2="260" y2="44"/>
+          <line x1="260" y1="44" x2="390" y2="44" stroke="currentColor" stroke-width="5"/>
+          <line x1="260" y1="44" x2="390" y2="44" stroke="var(--surface)" stroke-width="1.8"/>
+          <rect class="box" x="10" y="24" width="120" height="40" rx="2"/><text x="70" y="48" text-anchor="middle">USERS</text>
+          <path class="dia-s" d="M200,44 L260,16 L320,44 L260,72 Z"/><text class="r" x="260" y="48" text-anchor="middle">đăng bán</text>
+          <rect class="box" x="390" y="24" width="120" height="40" rx="2"/><text x="450" y="48" text-anchor="middle">PRODUCTS</text>
+          <text class="c" x="148" y="36">1</text><text class="c" x="368" y="36">N</text>
+          <text class="s" x="260" y="92" text-anchor="middle">Nét đôi phía PRODUCTS: tem nào cũng phải có người đăng</text>
+        </svg></div>
+      </figure>
+      <figure>
+        <figcaption>R3 · 1–N theo Crow's Foot</figcaption>
+        <div class="scroll"><svg class="mini" viewBox="0 0 520 96" aria-label="USERS hai vạch, PRODUCTS vòng tròn và chân chim">
+          <rect class="box" x="10" y="14" width="140" height="60" rx="3"/><text x="20" y="34">USERS</text><text class="s" x="20" y="56">PK id</text>
+          <rect class="box" x="370" y="14" width="140" height="60" rx="3"/><text x="380" y="34">PRODUCTS</text><text class="s" x="380" y="56">FK owner_id</text>
+          <line class="l" x1="150" y1="56" x2="370" y2="56"/>
+          <g class="k"><path d="M156,50 v12 M161,50 v12"/><path d="M358,56 L370,50 M358,56 L370,56 M358,56 L370,62"/><circle cx="350" cy="56" r="4"/></g>
+          <text class="s" x="260" y="92" text-anchor="middle">Đọc: mỗi tem đúng 1 user (‖) · mỗi user 0..N tem (o&lt;)</text>
+        </svg></div>
+      </figure>
+      <figure>
+        <figcaption>R6 + R7 · N–N theo Chen</figcaption>
+        <div class="scroll"><svg class="mini" viewBox="0 0 520 120" aria-label="PRODUCTS M, dịch, N LANGUAGES, quan hệ có thuộc tính name và description">
+          <line class="l" x1="260" y1="78" x2="200" y2="26"/><line class="l" x1="260" y1="78" x2="320" y2="26"/>
+          <line x1="130" y1="78" x2="260" y2="78" stroke="currentColor" stroke-width="5"/>
+          <line x1="130" y1="78" x2="260" y2="78" stroke="var(--surface)" stroke-width="1.8"/>
+          <line class="l" x1="260" y1="78" x2="390" y2="78"/>
+          <ellipse class="ell" cx="200" cy="24" rx="30" ry="13"/><text x="200" y="28" text-anchor="middle">name</text>
+          <ellipse class="ell" cx="328" cy="24" rx="50" ry="13"/><text x="328" y="28" text-anchor="middle">description</text>
+          <rect class="box" x="10" y="58" width="120" height="40" rx="2"/><text x="70" y="82" text-anchor="middle">PRODUCTS</text>
+          <path class="dia-s" d="M208,78 L260,52 L312,78 L260,104 Z"/><text class="r" x="260" y="82" text-anchor="middle">dịch</text>
+          <rect class="box" x="390" y="58" width="120" height="40" rx="2"/><text x="450" y="82" text-anchor="middle">LANGUAGES</text>
+          <text class="c" x="146" y="70">M</text><text class="c" x="368" y="70">N</text>
+        </svg></div>
+      </figure>
+      <figure>
+        <figcaption>R6 + R7 · N–N theo Crow's Foot</figcaption>
+        <div class="scroll"><svg class="mini" viewBox="0 0 620 120" aria-label="PRODUCTS, bảng trung gian PRODUCT_TRANSLATIONS, LANGUAGES">
+          <rect class="box" x="10" y="30" width="110" height="50" rx="3"/><text x="20" y="50">PRODUCTS</text><text class="s" x="20" y="70">PK id</text>
+          <rect class="box" x="210" y="14" width="210" height="80" rx="3"/><text x="220" y="34">PRODUCT_TRANSLATIONS</text>
+          <text class="s" x="220" y="56">PK, FK product_id</text><text class="s" x="220" y="72">PK, FK language_code</text><text class="s" x="220" y="88">name, description</text>
+          <rect class="box" x="510" y="30" width="100" height="50" rx="3"/><text x="520" y="50">LANGUAGES</text><text class="s" x="520" y="70">PK code</text>
+          <line class="l" x1="120" y1="56" x2="210" y2="56"/><line class="l" x1="420" y1="56" x2="510" y2="56"/>
+          <g class="k">
+            <path d="M126,50 v12 M131,50 v12"/>
+            <path d="M198,56 L210,50 M198,56 L210,56 M198,56 L210,62 M194,50 v12"/>
+            <path d="M432,56 L420,50 M432,56 L420,56 M432,56 L420,62"/><circle cx="440" cy="56" r="4"/>
+            <path d="M504,50 v12 M499,50 v12"/>
+          </g>
+          <text class="s" x="310" y="114" text-anchor="middle">Thuộc tính của hình thoi trở thành cột của bảng trung gian</text>
+        </svg></div>
+      </figure>
+    </div>
+
+    <div class="table-wrap">
+      <table class="cmp">
+        <thead><tr><th>Khía cạnh</th><th>Chen</th><th>Crow's Foot</th></tr></thead>
+        <tbody>
+          <tr><th>Mức mô hình</th><td>Khái niệm: nói chuyện với khách hàng, phân tích yêu cầu</td><td>Logic / vật lý: làm việc với dev, sinh ra <code>CREATE TABLE</code></td></tr>
+          <tr><th>Thực thể</th><td>Hình chữ nhật chỉ có tên. Thực thể yếu viền đôi</td><td>Hộp liệt kê các cột, đánh dấu PK/FK</td></tr>
+          <tr><th>Thuộc tính</th><td>Elip rời. Khóa gạch chân, khóa bộ phận gạch đứt, dẫn xuất viền đứt, đa trị viền đôi</td><td>Một dòng trong hộp, kèm kiểu dữ liệu</td></tr>
+          <tr><th>Quan hệ</th><td>Hình thoi, đặt tên bằng động từ, có thể mang thuộc tính</td><td>Chỉ là đường nối; tên ghi trên đường nếu muốn</td></tr>
+          <tr><th>Lực lượng</th><td>Chữ <code>1</code>, <code>N</code>, <code>M</code> cạnh đường nối</td><td>Ký hiệu ở đầu đường: vạch là 1, chân chim là nhiều</td></tr>
+          <tr><th>Bắt buộc / tuỳ chọn</th><td>Nét đôi là tham gia toàn phần, nét đơn là một phần</td><td>Vạch trong là tối thiểu 1, vòng tròn là tối thiểu 0</td></tr>
+          <tr><th>Quan hệ N–N</th><td>Vẽ trực tiếp bằng một hình thoi</td><td>Bắt buộc có bảng trung gian và hai đường 1–N</td></tr>
+          <tr><th>Khóa ngoại</th><td>Không xuất hiện</td><td>Thấy rõ, biết FK nằm ở bảng nào</td></tr>
+          <tr><th>Quy mô sơ đồ này</th><td>9 thực thể, 14 quan hệ, ~22 elip</td><td>13 bảng, 18 đường</td></tr>
+          <tr><th>Điểm yếu</th><td>Tốn chỗ, rối khi nhiều thuộc tính; không cho biết bảng thật</td><td>Che mất ý nghĩa nghiệp vụ: <code>order_items</code> trông giống mọi bảng khác</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="table-wrap">
+      <table class="cmp">
+        <thead><tr><th>Bảng trong Crow's Foot</th><th>Trở thành gì trong Chen</th><th>Thuộc tính đi theo</th></tr></thead>
+        <tbody>
+          <tr><th><code>product_translations</code></th><td>Thoi <i>dịch</i>, PRODUCTS (M) ↔ LANGUAGES (N)</td><td><code>name</code>, <code>description</code></td></tr>
+          <tr><th><code>category_translations</code></th><td>Thoi <i>dịch</i>, CATEGORIES (M) ↔ LANGUAGES (N)</td><td><code>name</code>, <code>description</code></td></tr>
+          <tr><th><code>order_items</code></th><td>Thoi <i>chứa</i>, ORDERS (M) ↔ PRODUCTS (N)</td><td><code>quantity</code>, <code>unit_price</code>, <code>product_name</code>, <code>subtotal</code> (dẫn xuất)</td></tr>
+          <tr><th><code>conversation_members</code></th><td>Thoi <i>tham gia</i>, USERS (M) ↔ CONVERSATIONS (N)</td><td><code>joined_at</code>, <code>last_read_message_id</code></td></tr>
+          <tr><th><code>product_images</code>, <code>password_resets</code></th><td>Giữ là thực thể, nhưng là <b>thực thể yếu</b> (viền đôi, thoi định danh viền đôi)</td><td>Khóa bộ phận: <code>sort_order</code>, <code>token_hash</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="hint"><code>order_items</code> có <code>id</code> riêng nên có thể vẽ là thực thể kết hợp (associative entity). Vẽ thành hình thoi thì làm rõ bản chất của nó: một đơn chứa nhiều tem, một tem nằm trong nhiều đơn.</p>
+  </section>
+
+  <section id="de-xuat">
+    <h2>Đề xuất rút ra khi phân tích</h2>
+    <p class="prose">Một số luật trong thẻ quan hệ ở trên không thể hiện được bằng khóa ngoại thường. Dưới đây là những luật có thể để PostgreSQL tự chặn, xếp theo mức độ nên làm.</p>
+    <ol class="fix">
+      <li><b>Khai báo FK cho <code>conversation_members.last_read_message_id</code></b> (R19). Hiện cột này có thể trỏ tới một tin nhắn không tồn tại.
+        <pre>FOREIGN KEY (last_read_message_id) REFERENCES messages(id) ON DELETE SET NULL</pre></li>
+      <li><b>Người gửi phải là thành viên cuộc chat</b> (R18). Dùng FK ghép thay cho FK đơn tới <code>users</code>.
+        <pre>FOREIGN KEY (conversation_id, sender_id)
+  REFERENCES conversation_members (conversation_id, user_id)</pre></li>
+      <li><b>Tối đa 2 ảnh mỗi tem</b> (R5). DB tự chặn ảnh thứ ba, BE chỉ cần bắt lỗi.
+        <pre>UNIQUE (product_id, sort_order),
+CHECK (sort_order IN (1, 2))</pre></li>
+      <li><b>Không tự mua tem của mình</b> (R10, R11).
+        <pre>CHECK (buyer_id &lt;&gt; seller_id)</pre></li>
+      <li><b>Các luật chỉ BE kiểm tra được</b>: tem nằm trong đơn phải thuộc đúng người bán của đơn (R13); mỗi tem có ít nhất 1 bản dịch, mỗi đơn có ít nhất 1 dòng, mỗi cuộc chat có ít nhất 2 thành viên (các quan hệ có tối thiểu 1 ở phía con). Nên gom vào một transaction khi tạo bản ghi cha.</li>
+    </ol>
+  </section>
+
+  <footer>Phân tích ngày 04/10/2026 · Dựa trên bản nháp v0.1 trong <code>docs/er_diagram.html</code> · Mức tối thiểu của R2 giả định <code>users.language_code</code> được để trống.</footer>
+</div>
+
+<script>
+const NS = 'http://www.w3.org/2000/svg';
+const el = (parent, tag, attrs, text) => {
+  const n = document.createElementNS(NS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (text != null) n.textContent = text;
+  parent.appendChild(n); return n;
+};
+const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+// Ký hiệu Crow's Foot thu nhỏ: đầu trái là bảng cha, đầu phải là bảng con
+function cfMini(pMin, cMin, w = 150) {
+  const r = w - 6;
+  let s = `<svg viewBox="0 0 ${w} 24" preserveAspectRatio="none" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.4">`;
+  s += `<line x1="6" y1="12" x2="${r}" y2="12"${pMin ? '' : ' stroke-dasharray="5 4"'}/>`;
+  s += `<path d="M12,6 v12"/>`;
+  s += pMin ? `<path d="M17,6 v12"/>` : `<circle cx="21" cy="12" r="4" fill="var(--surface)"/>`;
+  s += `<path d="M${r - 12},12 L${r},6 M${r - 12},12 L${r},12 M${r - 12},12 L${r},18"/>`;
+  s += cMin ? `<path d="M${r - 16},6 v12"/>` : `<circle cx="${r - 20}" cy="12" r="4" fill="var(--surface)"/>`;
+  return s + '</g></svg>';
+}
+
+// ---------- Thẻ quan hệ ----------
+// [id, cha, động từ, con, FK, min phía cha (0|1), min con, max con, ON DELETE, tags, đọc, nhận xét, chưa khai báo?]
+const GROUPS = [
+  ["Tài khoản", "Hai quan hệ 1–N xoay quanh users.", null, [
+    ["R1","users","yêu cầu đặt lại mật khẩu","password_resets","password_resets.user_id",1,0,"N","CASCADE",["1–N","thực thể yếu"],
+     "Một user có 0..N yêu cầu đặt lại mật khẩu. Mỗi yêu cầu thuộc đúng 1 user.",
+     "Token không có nghĩa nếu thiếu user, nên đây là thực thể yếu. Khi tạo token mới, nên đánh dấu <b>used_at</b> cho các token cũ còn hạn, và index <code>(user_id, expires_at)</code>."],
+    ["R2","languages","được chọn làm ngôn ngữ ưu tiên bởi","users","users.language_code",0,0,"N","SET NULL",["1–N","tuỳ chọn"],
+     "Một ngôn ngữ được 0..N user chọn. Mỗi user chọn tối đa 1 ngôn ngữ; để trống thì dùng ngôn ngữ có <code>is_default</code>.",
+     "Sơ đồ gốc không vẽ đường này. Ở đây giả định cột được để trống; nếu bắt buộc thì phía cha thành 1..1 và đổi sang <b>RESTRICT</b>."]
+  ]],
+  ["Tem", "Bảng products là trung tâm, nhận 3 quan hệ 1–N.", null, [
+    ["R3","users","đăng bán","products","products.owner_id",1,0,"N","RESTRICT",["1–N"],
+     "Một user đăng 0..N tem. Mỗi tem có đúng 1 người tạo, có thể là admin.",
+     "users dùng xoá mềm nên RESTRICT không cản nghiệp vụ. Cần chốt với khách: khi user bị <b>khoá</b> thì tem của họ có bị ẩn không."],
+    ["R4","categories","phân loại","products","products.category_id",1,0,"N","RESTRICT",["1–N"],
+     "Một category chứa 0..N tem. Mỗi tem thuộc đúng 1 category.",
+     "Category tắt bằng <code>is_active</code> thay vì xoá. Nếu cần phân cấp cha/con thì thêm <code>categories.parent_id</code> trỏ về chính bảng đó, gọi là <b>quan hệ đệ quy</b>."],
+    ["R5","products","có ảnh","product_images","product_images.product_id",1,0,"2","CASCADE",["1–N","thực thể yếu","tối đa 2"],
+     "Một tem có từ 0 đến 2 ảnh. Mỗi ảnh thuộc đúng 1 tem.",
+     "FK chỉ nói được là <b>nhiều</b>, không nói được <b>tối đa 2</b>. Hiện luật này chỉ nằm ở BE; xem đề xuất 3 để DB tự chặn."]
+  ]],
+  ["Đa ngôn ngữ", "Hai bảng dịch là hai quan hệ N–N có thuộc tính.", "R6 + R7 tạo thành <b>N–N products ↔ languages</b>, R8 + R9 tạo thành <b>N–N categories ↔ languages</b>. Khóa chính ghép <code>(…_id, language_code)</code> bảo đảm mỗi ngôn ngữ chỉ có 1 bản dịch cho mỗi dòng.", [
+    ["R6","products","được dịch thành","product_translations","product_translations.product_id",1,1,"N","CASCADE",["nửa của N–N"],
+     "Một tem có ít nhất 1 bản dịch (ngôn ngữ mặc định). Mỗi bản dịch thuộc đúng 1 tem.",
+     "Tối thiểu phía con là <b>1</b> vì tên tem nằm trong bản dịch. FK không ép được tối thiểu này; BE phải tạo tem và bản dịch mặc định trong cùng transaction."],
+    ["R7","languages","là ngôn ngữ của","product_translations","product_translations.language_code",1,0,"N","RESTRICT",["nửa của N–N"],
+     "Một ngôn ngữ có 0..N bản dịch tem. Mỗi bản dịch thuộc đúng 1 ngôn ngữ.",
+     "Thêm quốc gia mới chỉ cần thêm dòng vào languages; ngôn ngữ cũ thì tắt <code>is_active</code> thay vì xoá."],
+    ["R8","categories","được dịch thành","category_translations","category_translations.category_id",1,1,"N","CASCADE",["nửa của N–N"],
+     "Một category có ít nhất 1 bản dịch. Mỗi bản dịch thuộc đúng 1 category.",
+     "Giống R6: tên category nằm trong bản dịch nên tối thiểu là 1."],
+    ["R9","languages","là ngôn ngữ của","category_translations","category_translations.language_code",1,0,"N","RESTRICT",["nửa của N–N"],
+     "Một ngôn ngữ có 0..N bản dịch category. Mỗi bản dịch thuộc đúng 1 ngôn ngữ.",
+     "RESTRICT chặn xoá ngôn ngữ đang được dùng, đúng với cách tắt bằng <code>is_active</code>."]
+  ]],
+  ["Mua bán", "Một cặp bảng có hai quan hệ song song, và một N–N có thuộc tính.", "R10 và R11 nối <b>cùng một cặp bảng</b> nhưng mang hai <b>vai trò</b> khác nhau (người mua, người bán). R12 + R13 tạo thành <b>N–N orders ↔ products</b>, mang thuộc tính số lượng và giá lúc mua.", [
+    ["R10","users","mua","orders","orders.buyer_id",1,0,"N","RESTRICT",["1–N","vai trò"],
+     "Một user mua 0..N đơn. Mỗi đơn có đúng 1 người mua.",
+     "Nên thêm <code>CHECK (buyer_id &lt;&gt; seller_id)</code> để không tự mua tem của mình."],
+    ["R11","users","bán","orders","orders.seller_id",1,0,"N","RESTRICT",["1–N","vai trò"],
+     "Một user bán 0..N đơn. Mỗi đơn có đúng 1 người bán.",
+     "<code>seller_id</code> suy ra được từ <code>products.owner_id</code>, nhưng lưu sẵn giúp màn “đã bán” và thống kê top người bán không phải join qua order_items."],
+    ["R12","orders","gồm","order_items","order_items.order_id",1,1,"N","CASCADE",["nửa của N–N"],
+     "Một đơn có ít nhất 1 dòng hàng. Mỗi dòng hàng thuộc đúng 1 đơn.",
+     "Đơn thường không bị xoá mà chuyển sang <code>cancelled</code>, nên CASCADE chủ yếu để dọn dữ liệu test."],
+    ["R13","products","được mua qua","order_items","order_items.product_id",1,0,"N","RESTRICT",["nửa của N–N","snapshot"],
+     "Một tem nằm trong 0..N dòng hàng. Mỗi dòng hàng trỏ tới đúng 1 tem.",
+     "Tem xoá mềm nên FK luôn hợp lệ, còn tên và giá đã chụp lại trong dòng hàng. FK <b>không</b> bảo đảm <code>products.owner_id = orders.seller_id</code>; luật chéo bảng này cần BE kiểm tra."]
+  ]],
+  ["Chat", "Một quan hệ tuỳ chọn, một N–N và hai quan hệ 1–N với messages.", "R15 + R16 tạo thành <b>N–N users ↔ conversations</b>, mang thuộc tính <code>joined_at</code> và <code>last_read_message_id</code>.", [
+    ["R14","products","được hỏi trong","conversations","conversations.product_id",0,0,"N","SET NULL",["1–N","tuỳ chọn"],
+     "Một tem có 0..N cuộc chat hỏi về nó. Một cuộc chat gắn với tối đa 1 tem, hoặc không gắn tem nào.",
+     "Đây là đường nét đứt trong sơ đồ. Để tránh mở trùng chat cho cùng người mua và cùng tem, BE phải tìm cuộc chat có sẵn trước khi tạo mới, vì thành viên nằm ở bảng khác nên không dùng UNIQUE được."],
+    ["R15","conversations","có thành viên","conversation_members","conversation_members.conversation_id",1,1,"N","CASCADE",["nửa của N–N"],
+     "Một cuộc chat có ít nhất 2 thành viên. Mỗi dòng thành viên thuộc đúng 1 cuộc chat.",
+     "Tối thiểu thật là <b>2</b>. Nếu chỉ có chat 1-1 thì tối đa cũng là 2."],
+    ["R16","users","tham gia","conversation_members","conversation_members.user_id",1,0,"N","RESTRICT",["nửa của N–N"],
+     "Một user tham gia 0..N cuộc chat. Mỗi dòng thành viên là đúng 1 user.",
+     "Khóa chính ghép <code>(conversation_id, user_id)</code> chặn một user vào cùng cuộc chat hai lần."],
+    ["R17","conversations","chứa","messages","messages.conversation_id",1,0,"N","CASCADE",["1–N"],
+     "Một cuộc chat có 0..N tin nhắn. Mỗi tin nhắn thuộc đúng 1 cuộc chat.",
+     "<code>conversations.last_message_at</code> là <b>thuộc tính dẫn xuất</b> (bằng MAX của <code>messages.created_at</code>), lưu sẵn để sắp danh sách chat nhanh. Cập nhật nó trong cùng transaction khi gửi tin."],
+    ["R18","users","gửi","messages","messages.sender_id",1,0,"N","RESTRICT",["1–N"],
+     "Một user gửi 0..N tin nhắn. Mỗi tin nhắn có đúng 1 người gửi.",
+     "FK đơn chỉ bảo đảm người gửi tồn tại, không bảo đảm họ là thành viên cuộc chat. Xem đề xuất 2."],
+    ["R19","messages","là mốc đã đọc của","conversation_members","conversation_members.last_read_message_id",0,0,"N","SET NULL",["ẩn","chưa có FK"],
+     "Mỗi thành viên đánh dấu tối đa 1 tin nhắn đã đọc gần nhất. Một tin nhắn có thể là mốc của 0..N thành viên.",
+     "Cột có trong thiết kế nhưng chưa khai báo FK, nên không xuất hiện trong cả hai sơ đồ. Xem đề xuất 1.", true]
+  ]]
+];
+const fmt = (min, max) => `${min}..${max}`;
+document.getElementById('groups').innerHTML = GROUPS.map(([g, sub, pair, rels]) => `
+  <div class="group">
+    <div class="group-head"><h3>${g}</h3><p>${sub}</p></div>
+    ${pair ? `<p class="pair">${pair}</p>` : ''}
+    <div class="cards">${rels.map(([id, p, verb, c, fk, pMin, cMin, cMax, del, tags, read, note, missing]) => `
+      <article class="rc${missing ? ' missing' : ''}" id="${id.toLowerCase()}">
+        <div class="rc-head"><span class="rid">${id}</span><h4><code>${p}</code> <span class="verb">${verb}</span> <code>${c}</code></h4></div>
+        <div class="notation"><span class="n">${fmt(pMin, 1)}</span>${cfMini(pMin, cMin)}<span class="n">${fmt(id === 'R15' ? 2 : cMin, cMax)}</span></div>
+        <div class="notation-names"><span>${p}</span><span>${c}</span></div>
+        <div class="tags">${tags.map(t => `<span class="tag${/N–N|ẩn|FK|tối đa|vai trò/.test(t) ? ' hot' : ''}">${t}</span>`).join('')}</div>
+        <dl><dt>Khóa ngoại</dt><dd><code>${fk}</code></dd><dt>ON DELETE</dt><dd><code>${del}</code> (gợi ý)</dd></dl>
+        <p class="read">${read}</p>
+        <p class="note">${note}</p>
+      </article>`).join('')}</div>
+  </div>`).join('');
+
+// ---------- Sơ đồ Chen ----------
+(() => {
+  const svg = document.getElementById('chen-svg');
+  const gL = el(svg, 'g', {}), gS = el(svg, 'g', {}), gT = el(svg, 'g', {});
+  const EH = 44, DW = 52, DH = 28;
+  // [tên, x, y, yếu?, rộng]
+  const ENT = {
+    CAT: ['CATEGORIES', 130, 470], IMG: ['PRODUCT_IMAGES', 130, 260, 1], P: ['PRODUCTS', 500, 470],
+    U: ['USERS', 1000, 470, 0, 170], PR: ['PASSWORD_RESETS', 1320, 470, 1], O: ['ORDERS', 750, 760],
+    CONV: ['CONVERSATIONS', 750, 260], MES: ['MESSAGES', 1000, 140], LANG: ['LANGUAGES', 300, 880]
+  };
+  // [động từ, x, y, định danh?]
+  const REL = {
+    A: ['đăng bán', 750, 470], B: ['phân loại', 315, 470], C: ['có ảnh', 315, 365, 1], D: ['dịch', 400, 675],
+    E: ['dịch', 215, 675], F: ['chọn', 700, 880], G: ['yêu cầu', 1170, 470, 1], H: ['mua', 875, 615],
+    I: ['bán', 1025, 640], J: ['chứa', 625, 615], K: ['hỏi về', 625, 365], L: ['tham gia', 875, 365],
+    M: ['gồm', 875, 200], N: ['gửi', 1000, 305]
+  };
+  // [thực thể, quan hệ, nhãn, toàn phần?, vị trí nhãn, đường gấp khúc]
+  const LINKS = [
+    ['U','A','1',0,[900,458]], ['P','A','N',1,[592,458]],
+    ['CAT','B','1',0,[222,458]], ['P','B','N',1,[410,458]],
+    ['P','C','1',0,[452,428]], ['IMG','C','N',1,[164,302]],
+    ['P','D','M',1,[464,512]], ['LANG','D','N',0,[333,846]],
+    ['CAT','E','M',1,[128,508]], ['LANG','E','N',0,[270,850]],
+    ['LANG','F','1',0,[392,870]], ['U','F','N',1,[1084,514],[[1070,470],[1070,880],[700,880]]],
+    ['U','G','1',0,[1101,458]], ['PR','G','N',1,[1234,458]],
+    ['U','H','1',0,[956,504]], ['O','H','N',1,[794,728]],
+    ['U','I','1',0,[1038,510],[[1025,470],[1025,640]]], ['O','I','N',1,[842,750],[[750,760],[1025,760],[1025,640]]],
+    ['O','J','M',1,[708,732]], ['P','J','N',0,[546,500]],
+    ['P','K','1',0,[528,428]], ['CONV','K','N',0,[700,292]],
+    ['U','L','M',0,[974,426]], ['CONV','L','N',1,[772,302]],
+    ['CONV','M','1',0,[800,222]], ['MES','M','N',1,[934,184]],
+    ['U','N','1',0,[1013,432]], ['MES','N','N',1,[1013,180]]
+  ];
+  // [tên, x, y, chủ (E thực thể | R quan hệ), khóa chủ, loại]
+  const ATTR = [
+    ['id',130,400,'E','CAT','pk'], ['sort_order',130,190,'E','IMG','partial'], ['id',500,398,'E','P','pk'],
+    ['id',1110,405,'E','U','pk'], ['token_hash',1320,402,'E','PR','partial'], ['id',640,830,'E','O','pk'],
+    ['id',665,200,'E','CONV','pk'], ['id',1115,95,'E','MES','pk'], ['code',185,880,'E','LANG','pk'],
+    ['name',515,705,'R','D'], ['description',540,752,'R','D'],
+    ['name',90,625,'R','E'], ['description',95,725,'R','E'],
+    ['product_name',690,555,'R','J'], ['unit_price',805,560,'R','J'], ['quantity',755,610,'R','J'], ['subtotal',725,662,'R','J','derived'],
+    ['joined_at',800,415,'R','L'], ['last_read_message_id',880,292,'R','L']
+  ];
+  const ctr = (kind, key) => kind === 'E' ? ENT[key].slice(1, 3) : REL[key].slice(1, 3);
+
+  for (const [ek, rk, label, total, lp, pts] of LINKS) {
+    const P = pts || [ENT[ek].slice(1, 3), REL[rk].slice(1, 3)];
+    const d = P.map(p => p.join(',')).join(' ');
+    if (total) { el(gL, 'polyline', { class: 'ln2', points: d }); el(gL, 'polyline', { class: 'gap', points: d }); }
+    else el(gL, 'polyline', { class: 'ln', points: d });
+    el(gT, 'text', { class: 'card', x: lp[0], y: lp[1], 'text-anchor': 'middle', 'dominant-baseline': 'central' }, label);
+  }
+  for (const [name, x, y, kind, key, type] of ATTR) {
+    const [ox, oy] = ctr(kind, key);
+    el(gL, 'line', { class: 'ln', x1: x, y1: y, x2: ox, y2: oy });
+    const rx = Math.max(22, name.length * 3.3 + 12);
+    el(gS, 'ellipse', { class: 'att' + (type === 'derived' ? ' derived' : ''), cx: x, cy: y, rx, ry: 14 });
+    el(gS, 'text', { class: 'aname', x, y: y + 4, 'text-anchor': 'middle' }, name);
+    if (type === 'pk' || type === 'partial') {
+      const w = name.length * 6.6 / 2;
+      el(gS, 'line', { class: 'ul' + (type === 'partial' ? ' partial' : ''), x1: x - w, x2: x + w, y1: y + 7, y2: y + 7 });
+    }
+  }
+  for (const k in REL) {
+    const [name, x, y, ident] = REL[k];
+    const dia = (hw, hh, cls) => el(gS, 'path', { class: cls, d: `M${x - hw},${y} L${x},${y - hh} L${x + hw},${y} L${x},${y + hh} Z` });
+    dia(DW, DH, 'rel');
+    if (ident) dia(DW - 8, DH - 5, 'rel');
+    el(gS, 'text', { class: 'rname', x, y: y + 4, 'text-anchor': 'middle' }, name);
+  }
+  for (const k in ENT) {
+    const [name, x, y, weak, w = 150] = ENT[k];
+    el(gS, 'rect', { class: 'ent', x: x - w / 2, y: y - EH / 2, width: w, height: EH, rx: 2 });
+    if (weak) el(gS, 'rect', { class: 'ent', x: x - w / 2 + 4, y: y - EH / 2 + 4, width: w - 8, height: EH - 8, rx: 1 });
+    el(gS, 'text', { class: 'ename', x, y: y + 4, 'text-anchor': 'middle' }, name);
+  }
+
+  const L = [
+    ['<rect x="8" y="5" width="48" height="20" rx="2" class="ent"/>', 'Thực thể (bảng)'],
+    ['<rect x="8" y="5" width="48" height="20" rx="2" class="ent"/><rect x="11" y="8" width="42" height="14" class="ent"/>', 'Thực thể yếu: phụ thuộc thực thể khác'],
+    ['<path d="M10,15 L32,3 L54,15 L32,27 Z" class="rel"/>', 'Quan hệ, đặt tên bằng động từ'],
+    ['<path d="M10,15 L32,3 L54,15 L32,27 Z" class="rel"/><path d="M17,15 L32,7 L47,15 L32,23 Z" class="rel"/>', 'Quan hệ định danh (của thực thể yếu)'],
+    ['<ellipse cx="32" cy="15" rx="22" ry="10" class="att"/><line x1="22" x2="42" y1="20" y2="20" class="ul"/>', 'Thuộc tính khóa (gạch chân)'],
+    ['<ellipse cx="32" cy="15" rx="22" ry="10" class="att"/><line x1="22" x2="42" y1="20" y2="20" class="ul partial"/>', 'Khóa bộ phận của thực thể yếu'],
+    ['<ellipse cx="32" cy="15" rx="22" ry="10" class="att derived"/>', 'Thuộc tính dẫn xuất (tính được)'],
+    ['<line x1="4" x2="60" y1="15" y2="15" class="ln2"/><line x1="4" x2="60" y1="15" y2="15" class="gap"/>', 'Tham gia toàn phần (bắt buộc)'],
+    ['<line x1="4" x2="60" y1="15" y2="15" class="ln"/><text x="32" y="11" class="card" text-anchor="middle">1 · N</text>', 'Tham gia một phần; chữ là lực lượng']
+  ];
+  document.getElementById('chen-legend').innerHTML = L.map(([g, t]) =>
+    `<div><svg class="chen" viewBox="0 0 64 30" aria-hidden="true">${g}</svg><span>${t}</span></div>`).join('');
+})();
+
+// ---------- Sơ đồ Crow's Foot ----------
+(() => {
+  const svg = document.getElementById('cf-svg');
+  const X = [40, 380, 720, 1060], W = 270, HEAD = 30, ROW = 22;
+  const T = {
+    product_images:        ["PRODUCT_IMAGES", "Ảnh tem", 0, 40, [["id",1], ["product_id",0,"products"]], 3],
+    product_translations:  ["PRODUCT_TRANSLATIONS", "Dịch tem", 0, 170, [["product_id",1,"products"], ["language_code",1,"languages"]], 2],
+    category_translations: ["CATEGORY_TRANSLATIONS", "Dịch category", 0, 330, [["category_id",1,"categories"], ["language_code",1,"languages"]], 2],
+    languages:             ["LANGUAGES", "Ngôn ngữ", 0, 460, [["code",1]], 4],
+    products:              ["PRODUCTS", "Tem bưu điện", 1, 170, [["id",1], ["category_id",0,"categories"], ["owner_id",0,"users"]], 9, true],
+    categories:            ["CATEGORIES", "Phân loại", 1, 330, [["id",1]], 5],
+    order_items:           ["ORDER_ITEMS", "Dòng hàng", 2, 40, [["id",1], ["product_id",0,"products"], ["order_id",0,"orders"]], 4],
+    conversations:         ["CONVERSATIONS", "Cuộc chat", 2, 180, [["id",1], ["product_id",0,"products"]], 2],
+    users:                 ["USERS", "Admin & user", 2, 300, [["id",1], ["language_code",0,"languages"]], 13, true],
+    orders:                ["ORDERS", "Đơn hàng", 3, 84, [["id",1], ["buyer_id",0,"users"], ["seller_id",0,"users"]], 7],
+    conversation_members:  ["CONVERSATION_MEMBERS", "Người tham gia", 3, 230, [["conversation_id",1,"conversations"], ["user_id",1,"users"]], 2],
+    messages:              ["MESSAGES", "Tin nhắn", 3, 350, [["id",1], ["conversation_id",0,"conversations"], ["sender_id",0,"users"]], 5],
+    password_resets:       ["PASSWORD_RESETS", "Quên mật khẩu", 3, 490, [["id",1], ["user_id",0,"users"]], 4]
+  };
+  // [mã quan hệ, đường đi (đầu FK → đầu PK), FK để trống?, tối thiểu phía con]
+  const E = [
+    ["R5",  [[310,103],[335,103],[335,211],[380,211]], 0, 0],
+    ["R6",  [[310,211],[380,211]], 0, 1],
+    ["R7",  [[40,233],[16,233],[16,501],[40,501]], 0, 0],
+    ["R9",  [[40,393],[16,393],[16,501],[40,501]], 0, 0],
+    ["R8",  [[310,371],[380,371]], 0, 1],
+    ["R4",  [[380,233],[352,233],[352,371],[380,371]], 0, 0],
+    ["R3",  [[650,255],[695,255],[695,341],[720,341]], 0, 0],
+    ["R13", [[720,103],[675,103],[675,211],[650,211]], 0, 0],
+    ["R14", [[720,243],[675,243],[675,211],[650,211]], 1, 0],
+    ["R12", [[990,125],[1060,125]], 0, 1],
+    ["R10", [[1060,147],[1010,147],[1010,341],[990,341]], 0, 0],
+    ["R11", [[1060,169],[1010,169],[1010,341],[990,341]], 0, 0],
+    ["R16", [[1060,293],[1010,293],[1010,341],[990,341]], 0, 0],
+    ["R18", [[1060,435],[1010,435],[1010,341],[990,341]], 0, 0],
+    ["R1",  [[1060,553],[1010,553],[1010,341],[990,341]], 0, 0],
+    ["R15", [[1060,271],[1035,271],[1035,221],[990,221]], 0, 1],
+    ["R17", [[1060,413],[1035,413],[1035,221],[990,221]], 0, 0],
+    ["R2",  [[720,363],[705,363],[705,560],[340,560],[340,501],[310,501]], 1, 0]
+  ];
+  const CROSS = [[1035, 293], [1010, 221]];
+  const rowY = (top, i) => top + HEAD + ROW / 2 + ROW * i;
+
+  for (const key in T) {
+    const [name, sub, c, top, rows, more, hub] = T[key];
+    const x = X[c], h = HEAD + ROW * rows.length + ROW;
+    const g = el(svg, 'g', {});
+    el(g, 'rect', { class: 'frame' + (hub ? ' hub' : ''), x, y: top, width: W, height: h, rx: 4 });
+    el(g, 'path', { class: 'head', d: `M${x+1},${top+HEAD} V${top+4} q0,-3 3,-3 H${x+W-4} q3,0 3,3 V${top+HEAD} Z` });
+    el(g, 'text', { class: 'tname', x: x + 10, y: top + 20 }, name);
+    el(g, 'text', { class: 'tsub', x: x + W - 10, y: top + 20, 'text-anchor': 'end' }, sub);
+    rows.forEach(([col, pk, fk], i) => {
+      const y = rowY(top, i), ry = top + HEAD + ROW * i;
+      el(g, 'line', { class: 'sep', x1: x, x2: x + W, y1: ry, y2: ry });
+      const badge = (bx, kind) => {
+        el(g, 'rect', { class: 'badge ' + kind, x: bx, y: y - 7, width: 20, height: 14, rx: 2 });
+        el(g, 'text', { class: 'badge-t ' + kind, x: bx + 10, y: y + 3.5, 'text-anchor': 'middle' }, kind.toUpperCase());
+      };
+      if (pk) badge(x + 10, 'pk');
+      if (fk) badge(x + 34, 'fk');
+      el(g, 'text', { class: 'cname', x: x + 62, y: y + 4 }, col);
+      if (fk) el(g, 'text', { class: 'target', x: x + W - 10, y: y + 4, 'text-anchor': 'end' }, '→ ' + fk);
+    });
+    const fy = top + HEAD + ROW * rows.length;
+    el(g, 'line', { class: 'sep', x1: x, x2: x + W, y1: fy, y2: fy });
+    el(g, 'text', { class: 'more', x: x + 10, y: fy + 15 }, `+ ${more} cột khác`);
+  }
+
+  for (const [id, pts, opt, cMin] of E) {
+    const g = el(svg, 'g', { class: 'edge' + (opt ? ' opt' : ''), tabindex: 0 });
+    el(g, 'title', {}, id + (opt ? ' · FK có thể để trống' : ''));
+    const d = pts.map(p => p.join(',')).join(' ');
+    el(g, 'polyline', { class: 'ln', points: d });
+    el(g, 'polyline', { class: 'hit', points: d });
+    // Đầu FK (bảng con): chân chim = nhiều; vạch = tối thiểu 1, vòng tròn = tối thiểu 0
+    const [a, b] = pts, s = Math.sign(b[0] - a[0]);
+    el(g, 'path', { d: `M${a[0]+s*12},${a[1]} L${a[0]},${a[1]-6} M${a[0]+s*12},${a[1]} L${a[0]},${a[1]} M${a[0]+s*12},${a[1]} L${a[0]},${a[1]+6}` });
+    if (cMin) el(g, 'path', { d: `M${a[0]+s*16},${a[1]-6} v12` });
+    else el(g, 'circle', { cx: a[0] + s * 20, cy: a[1], r: 4 });
+    // Đầu PK (bảng cha): vạch ngoài = tối đa 1; vạch trong = bắt buộc, vòng tròn = FK để trống
+    const z = pts[pts.length - 1], y0 = pts[pts.length - 2], s2 = Math.sign(y0[0] - z[0]);
+    el(g, 'path', { d: `M${z[0]+s2*6},${z[1]-6} v12` });
+    if (opt) el(g, 'circle', { cx: z[0] + s2 * 15, cy: z[1], r: 4 });
+    else el(g, 'path', { d: `M${z[0]+s2*11},${z[1]-6} v12` });
+  }
+  for (const [cx, cy] of CROSS) {
+    el(svg, 'rect', { class: 'patch', x: cx - 3, y: cy - 6, width: 6, height: 12 });
+    el(svg, 'line', { class: 'edge', x1: cx - 6, x2: cx + 6, y1: cy, y2: cy, style: 'pointer-events:none' });
+  }
+
+  const mk = (left, right) => `<svg viewBox="0 0 64 30" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.4"><line x1="4" y1="15" x2="60" y2="15"/>${left}</g></svg>`;
+  const L = [
+    [mk('<path d="M40,9 v12 M46,9 v12"/>'), '<b>‖</b> Một và chỉ một (1..1)'],
+    [mk('<path d="M46,9 v12"/><circle cx="38" cy="15" r="4" fill="var(--surface)"/>'), '<b>o|</b> Không hoặc một (0..1)'],
+    [mk('<path d="M48,15 L60,9 M48,15 L60,15 M48,15 L60,21 M44,9 v12"/>'), '<b>|&lt;</b> Một hoặc nhiều (1..N)'],
+    [mk('<path d="M48,15 L60,9 M48,15 L60,15 M48,15 L60,21"/><circle cx="40" cy="15" r="4" fill="var(--surface)"/>'), '<b>o&lt;</b> Không hoặc nhiều (0..N)']
+  ];
+  document.getElementById('cf-legend').innerHTML = L.map(([s, t]) => `<div>${s}<span>${t}</span></div>`).join('');
+})();
+</script>

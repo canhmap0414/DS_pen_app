@@ -1,0 +1,427 @@
+<title>Sổ Tem ER</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column (max 1080px); diagram frame with perforated stamp edge, then entity grid, then mapping table, decisions, questions */
+:root {
+  --paper: #f6f7f9;
+  --surface: #ffffff;
+  --ink: #18223a;
+  --muted: #5a6478;
+  --line: #d9dee8;
+  --accent: #1f4fa3;      /* ink blue of a postal cancellation */
+  --stamp: #b3362f;       /* postmark red, used only for keys */
+  --accent-soft: #e6edf9;
+  --zone: #eef1f6;
+  --font-body: "Be Vietnam Pro", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper: #10141d; --surface: #171c28; --ink: #e5e9f2; --muted: #9aa4b8;
+    --line: #2b3346; --accent: #7fa6ec; --stamp: #ec7f76; --accent-soft: #1d2840; --zone: #1c2231;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #10141d; --surface: #171c28; --ink: #e5e9f2; --muted: #9aa4b8;
+  --line: #2b3346; --accent: #7fa6ec; --stamp: #ec7f76; --accent-soft: #1d2840; --zone: #1c2231;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.6;
+  padding-inline: 20px;
+  padding-block: 40px 64px;
+}
+.wrap { max-width: 1080px; margin: 0 auto; display: grid; gap: 48px; }
+
+header { display: grid; gap: 10px; }
+.eyebrow { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+h1 { font-size: clamp(26px, 4vw, 36px); line-height: 1.2; margin: 0; text-wrap: balance; font-weight: 700; }
+h2 { font-size: 21px; margin: 0 0 14px; text-wrap: balance; }
+.lead { color: var(--muted); max-width: 68ch; margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.chip { font-size: 12.5px; padding: 3px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+
+/* Diagram frame: perforated edge like a stamp sheet */
+.sheet {
+  background: var(--surface);
+  padding: 18px;
+  border-radius: 4px;
+  -webkit-mask: radial-gradient(circle 5px at 50% 50%, #0000 98%, #000) -9px -9px / 18px 18px,
+                linear-gradient(#000 0 0) 9px 9px / calc(100% - 18px) calc(100% - 18px) no-repeat;
+          mask: radial-gradient(circle 5px at 50% 50%, #0000 98%, #000) -9px -9px / 18px 18px,
+                linear-gradient(#000 0 0) 9px 9px / calc(100% - 18px) calc(100% - 18px) no-repeat;
+  -webkit-mask-composite: source-over; mask-composite: add;
+}
+.sheet-inner { border: 1px dashed var(--line); padding: 16px; overflow-x: auto; }
+.er-fig { margin: 0; width: min(1660px, calc(100vw - 56px)); margin-left: 50%; transform: translateX(-50%); }
+.er { display: block; width: 100%; min-width: 1000px; height: auto; }
+.er .frame { fill: var(--surface); stroke: var(--ink); stroke-width: 1.2; }
+.er .frame.hub { stroke: var(--accent); stroke-width: 2.2; }
+.er .head { fill: var(--zone); }
+.er .sep { stroke: var(--line); stroke-width: 1; }
+.er .tname { font: 600 12.5px var(--font-mono); fill: var(--ink); }
+.er .tsub { font: 400 11px var(--font-body); fill: var(--muted); }
+.er .cname { font: 400 12px var(--font-mono); fill: var(--ink); }
+.er .target { font: 400 10.5px var(--font-body); fill: var(--muted); }
+.er .more { font: 400 10.5px var(--font-body); fill: var(--muted); }
+.er .badge { fill: none; stroke-width: 1.2; }
+.er .badge.pk { stroke: var(--stamp); } .er .badge-t.pk { fill: var(--stamp); }
+.er .badge.fk { stroke: var(--accent); } .er .badge-t.fk { fill: var(--accent); }
+.er .badge-t { font: 700 9px var(--font-mono); }
+.er .rowbg { fill: transparent; }
+.er .rowbg.on { fill: var(--accent-soft); }
+.er .edge { fill: none; stroke: var(--muted); stroke-width: 1.4; }
+.er .edge.opt .ln { stroke-dasharray: 5 4; }
+.er .edge .hit { stroke: transparent; stroke-width: 12; }
+.er .edge.on { stroke: var(--accent); stroke-width: 2.4; }
+.er .edge { cursor: pointer; }
+.er .patch { fill: var(--surface); }
+.er text, .er .badge, .er .sep { pointer-events: none; }
+.hint { font-size: 13px; color: var(--muted); margin-top: 8px; max-width: 80ch; }
+
+/* Entity grid */
+.groups { display: grid; gap: 28px; }
+.group-title { font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin: 0 0 10px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; align-items: start; }
+.entity { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.entity h3 { margin: 0; font-family: var(--font-mono); font-size: 14px; font-weight: 600; padding: 10px 14px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.entity h3 span { font-family: var(--font-body); font-size: 12px; font-weight: 400; color: var(--muted); }
+.entity table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.entity td { padding: 5px 14px; border-top: 1px solid var(--line); vertical-align: top; }
+.entity tr:first-child td { border-top: 0; }
+.entity td.f { font-family: var(--font-mono); white-space: nowrap; }
+.entity td.t { color: var(--muted); font-family: var(--font-mono); font-size: 12px; white-space: nowrap; }
+.entity td.n { color: var(--muted); font-size: 12.5px; }
+.key { display: inline-block; font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; letter-spacing: .04em; padding: 0 5px; margin-right: 6px; border: 1.5px solid var(--stamp); color: var(--stamp); border-radius: 3px; transform: rotate(-4deg); }
+.key.fk { border-color: var(--accent); color: var(--accent); transform: none; }
+
+/* Mapping table */
+.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+table.map { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 640px; }
+table.map th, table.map td { text-align: left; padding: 9px 14px; border-top: 1px solid var(--line); vertical-align: top; }
+table.map th { border-top: 0; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; background: var(--accent-soft); }
+table.map code { font-family: var(--font-mono); font-size: 12.5px; }
+.side { font-size: 12px; font-weight: 600; color: var(--accent); white-space: nowrap; }
+
+/* Lists */
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 32px; }
+ul.plain, ol.qs { margin: 0; padding-left: 20px; display: grid; gap: 10px; max-width: 68ch; }
+ol.qs li::marker { color: var(--stamp); font-weight: 700; }
+li strong { font-weight: 600; }
+code { font-family: var(--font-mono); font-size: .9em; }
+
+footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); padding-top: 16px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Thiết kế CSDL · Bản nháp v0.2</div>
+    <h1>Sơ đồ ER: ứng dụng mua bán tem bưu điện cũ</h1>
+    <p class="lead">Dựng từ function list (Overview, Admin, App). Gồm 15 bảng cho tài khoản, địa chỉ, thanh toán, tem, đa ngôn ngữ, mua bán và chat. Đây là bản nháp, sẽ cập nhật khi khách hàng bổ sung yêu cầu.</p>
+    <p class="lead"><b>Thay đổi ở v0.2:</b> thêm bảng <code>addresses</code> và <code>payment_methods</code> (mỗi user tạo được nhiều), đơn hàng gắn địa chỉ và phương thức thanh toán. Chat chia hai loại: phòng chat theo đơn (tự sinh khi tạo đơn) và phòng chat tự do giữa hai user (mỗi cặp user chỉ một phòng). Bỏ <code>conversations.product_id</code>.</p>
+    <div class="chips">
+      <span class="chip">BE: Golang</span><span class="chip">Admin FE: Node.js</span><span class="chip">Mobile: Flutter</span><span class="chip">DB đề xuất: PostgreSQL</span><span class="chip">vi · ja · en (+10)</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>Sơ đồ quan hệ</h2>
+    <figure class="er-fig">
+      <div class="sheet"><div class="sheet-inner">
+        <svg id="er" class="er" viewBox="0 0 1620 780" role="img" aria-label="Sơ đồ ER 15 bảng. Mỗi đường nối đi từ một cột khóa ngoại (FK) tới khóa chính (PK) của bảng được tham chiếu. USERS và PRODUCTS là hai bảng được tham chiếu nhiều nhất."></svg>
+      </div></div>
+      <figcaption class="hint">
+        <b>Cách đọc:</b> <b style="color:var(--stamp)">PK</b> là khóa chính, <b style="color:var(--accent)">FK</b> là khóa ngoại.
+        Mỗi đường nối đi từ dòng FK (đầu chân chim = <b>nhiều</b>) tới dòng PK của bảng kia (đầu hai vạch = <b>một</b>).
+        Ví dụ: <code>products.owner_id</code> → <code>users.id</code> nghĩa là một user có nhiều tem. Nét đứt là FK có thể để trống (phòng chat tự do không gắn với đơn nào).
+        Bảng có cả PK và FK (như <code>conversation_members</code>) là bảng trung gian, khóa chính gồm hai cột.
+        Di chuột hoặc chạm vào một dòng FK để tô sáng đường nối của nó.
+        <code>users.language_code</code> (đánh dấu *) cũng trỏ tới <code>languages</code> nhưng không vẽ đường để tránh cắt ngang sơ đồ.
+        Cột thường không ghi ở đây, xem ở phần Chi tiết bảng.
+      </figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Chi tiết bảng</h2>
+    <div class="groups" id="groups"></div>
+  </section>
+
+  <section>
+    <h2>Đối chiếu chức năng với bảng</h2>
+    <div class="table-wrap">
+      <table class="map">
+        <thead><tr><th>Chức năng</th><th>Phía</th><th>Bảng sử dụng</th></tr></thead>
+        <tbody>
+          <tr><td>Login email/password</td><td class="side">Admin · App</td><td><code>users</code> (<code>role</code> phân biệt admin/user), cập nhật <code>last_login_at</code></td></tr>
+          <tr><td>Register</td><td class="side">App</td><td><code>users</code></td></tr>
+          <tr><td>Forgot password</td><td class="side">App</td><td><code>password_resets</code></td></tr>
+          <tr><td>Quản lý user (list, create, edit, delete)</td><td class="side">Admin</td><td><code>users</code>, xoá mềm qua <code>deleted_at</code></td></tr>
+          <tr><td>Quản lý category</td><td class="side">Admin</td><td><code>categories</code>, <code>category_translations</code></td></tr>
+          <tr><td>Product list, create, delete</td><td class="side">Admin · App</td><td><code>products</code>, <code>product_translations</code>, <code>product_images</code></td></tr>
+          <tr><td>Publish / Unpublish</td><td class="side">Admin · App</td><td><code>products.status</code></td></tr>
+          <tr><td>Trạng thái tồn kho</td><td class="side">Admin · App</td><td>Tính từ <code>products.quantity</code></td></tr>
+          <tr><td>List đã bán / đã mua</td><td class="side">App</td><td><code>orders</code> lọc theo <code>seller_id</code> / <code>buyer_id</code>, kèm <code>order_items</code> (ảnh, tên tem, số lượng), <code>users</code> phía bên kia (avatar, tên), <code>orders.total_amount</code></td></tr>
+          <tr><td>Detail đơn đã bán / đã mua</td><td class="side">App</td><td>Như trên. Button Chat mở phòng có <code>conversations.order_id</code> = đơn này. Button status cập nhật <code>orders.status</code></td></tr>
+          <tr><td>Chat theo đơn hàng</td><td class="side">App · Admin xem</td><td>Tạo đơn thì tạo luôn <code>conversations</code> (<code>type = order</code>, <code>order_id</code>) và 2 dòng <code>conversation_members</code> (người mua, người bán). Admin đọc theo <code>role</code>, không phải thành viên nên không gửi được</td></tr>
+          <tr><td>Chat tự do (button CHAT ở product detail)</td><td class="side">App</td><td>Tìm <code>conversations</code> theo <code>direct_key</code> của cặp user. Chưa có thì tạo mới (<code>type = direct</code>), có rồi thì mở lại</td></tr>
+          <tr><td>Quản lý thanh toán (tạo nhiều)</td><td class="side">App</td><td><code>payment_methods</code>, có <code>is_default</code></td></tr>
+          <tr><td>Quản lý địa chỉ (tạo nhiều)</td><td class="side">App</td><td><code>addresses</code>, có <code>is_default</code></td></tr>
+          <tr><td>Setting</td><td class="side">App</td><td><code>users.language_code</code>, thêm cột khi có yêu cầu</td></tr>
+          <tr><td>Thống kê: top 10 user bán nhiều nhất</td><td class="side">Admin</td><td><code>SUM(order_items.quantity)</code> theo <code>orders.seller_id</code>, chỉ đơn <code>completed</code></td></tr>
+          <tr><td>Thống kê: doanh thu</td><td class="side">Admin</td><td><code>SUM(orders.total_amount)</code>, chỉ đơn <code>completed</code>, nhóm theo ngày/tháng</td></tr>
+          <tr><td>Thống kê: tỷ lệ theo category</td><td class="side">Admin</td><td><code>order_items</code> nối <code>products.category_id</code></td></tr>
+          <tr><td>Thống kê cá nhân</td><td class="side">App</td><td>Như trên, lọc theo user đang đăng nhập</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="cols">
+    <div>
+      <h2>Quyết định thiết kế</h2>
+      <ul class="plain">
+        <li><strong>Một bảng <code>users</code> cho cả admin và user</strong>, phân biệt bằng <code>role</code>. Admin tạo tem thì <code>owner_id</code> là admin, đáp ứng cột "người tạo".</li>
+        <li><strong>Trạng thái tồn kho tính từ <code>quantity</code></strong>: 0 là hết hàng, 1 đến 5 là sắp hết, trên 5 là còn hàng. Không lưu cột riêng nên không lệch dữ liệu.</li>
+        <li><strong>Đa ngôn ngữ qua bảng <code>*_translations</code></strong>. Thêm quốc gia mới chỉ cần thêm dòng vào <code>languages</code>. Thiếu bản dịch thì dùng ngôn ngữ mặc định. Chữ trên giao diện để trong file i18n của app, không lưu DB.</li>
+        <li><strong>Tối đa 2 ảnh mỗi tem</strong>, kiểm tra ở BE Golang.</li>
+        <li><strong><code>order_items</code> lưu tên và giá lúc mua</strong>, nên lịch sử đơn và thống kê vẫn đúng khi người bán sửa giá hoặc xoá tem.</li>
+        <li><strong>Trừ tồn kho trong cùng transaction với tạo đơn</strong>, có điều kiện <code>quantity &gt;= n</code>, để không bán quá số lượng.</li>
+        <li><strong>Mỗi đơn thuộc một người bán.</strong> Giỏ hàng nhiều người bán sẽ tách thành nhiều đơn.</li>
+        <li><strong>Đơn hàng lưu bản sao địa chỉ giao hàng</strong> (<code>shipping_name</code>, <code>shipping_phone</code>, <code>shipping_address</code>) bên cạnh <code>address_id</code>, nên user sửa hoặc xoá địa chỉ sau đó thì đơn cũ vẫn đúng.</li>
+        <li><strong>Không lưu số thẻ đầy đủ.</strong> <code>payment_methods</code> chỉ giữ 4 số cuối và token do cổng thanh toán cấp.</li>
+        <li><strong>Một bảng <code>conversations</code> cho cả hai loại chat</strong>, phân biệt bằng <code>type</code>. <code>order_id</code> là UNIQUE nên mỗi đơn đúng một phòng. <code>direct_key</code> (ví dụ <code>"12:57"</code>, id nhỏ đứng trước) là UNIQUE nên mỗi cặp user đúng một phòng chat tự do.</li>
+        <li><strong>Tạo đơn, trừ tồn kho và tạo phòng chat trong cùng một transaction</strong>, để không có đơn nào thiếu phòng chat.</li>
+        <li><strong>Admin xem chat nhưng không gửi được</strong>: API gửi tin chỉ cho phép thành viên trong <code>conversation_members</code>, admin đọc mọi phòng theo <code>role</code>.</li>
+      </ul>
+    </div>
+    <div>
+      <h2>Cần khách hàng xác nhận</h2>
+      <ol class="qs">
+        <li>"Quản lý thanh toán" là lưu phương thức (chuyển khoản, thẻ, ví điện tử…) hay có thanh toán online qua cổng (VNPay, Stripe…)? Nếu có cổng thì cần thêm bảng giao dịch <code>payments</code>.</li>
+        <li>Button status trong detail đơn: đơn có những trạng thái nào, và người bán hay người mua được đổi trạng thái nào?</li>
+        <li>Một đơn có thể gồm nhiều loại tem của cùng người bán, hay mỗi đơn chỉ một loại tem? List đã bán/đã mua đang hiển thị theo từng tem.</li>
+        <li>Chat có gửi ảnh không? Admin xem chat ở màn hình nào? Function list admin chưa có màn hình này.</li>
+        <li>Chat tự do: có cần đính kèm tem đang hỏi vào tin nhắn không?</li>
+        <li>Dùng một đồng tiền cố định hay mỗi tem một đồng tiền riêng?</li>
+        <li>Người bán tự nhập nhiều ngôn ngữ cho tem, hay hệ thống tự dịch?</li>
+        <li>Category có cần phân cấp cha/con không?</li>
+        <li>Setting gồm những gì? Có push notification (bảng <code>device_tokens</code>) không?</li>
+        <li>Ngưỡng "sắp hết hàng" cố định là 5 hay admin được cấu hình?</li>
+      </ol>
+    </div>
+  </section>
+
+  <footer>Bản nháp v0.2 ngày 04/10/2026 · Nguồn: Google Sheet function list · Bản Markdown: <code>docs/ER_diagram.md</code></footer>
+</div>
+
+<script>
+// ER diagram: 5 cột, bảng được tham chiếu (PRODUCTS, USERS, ORDERS...) đặt cạnh bảng trỏ tới nó;
+// mỗi đường nối đi từ dòng FK tới dòng PK, chạy trong khe giữa các cột.
+(() => {
+  const svg = document.getElementById('er');
+  const NS = 'http://www.w3.org/2000/svg';
+  const X = [40, 360, 680, 1000, 1320], W = 260, HEAD = 30, ROW = 22;
+  const el = (tag, attrs, text, parent = svg) => {
+    const n = document.createElementNS(NS, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    if (text != null) n.textContent = text;
+    parent.appendChild(n); return n;
+  };
+  // key: [TÊN, mô tả, cột, top, [[cột DB, PK?, FK → bảng]], số cột khác, bảng trung tâm?]
+  const T = {
+    product_images:        ["PRODUCT_IMAGES", "Ảnh tem", 0, 40, [["id",1], ["product_id",0,"products"]], 3],
+    product_translations:  ["PRODUCT_TRANSLATIONS", "Bản dịch", 0, 170, [["product_id",1,"products"], ["language_code",1,"languages"]], 2],
+    category_translations: ["CATEGORY_TRANSLATIONS", "Bản dịch", 0, 330, [["category_id",1,"categories"], ["language_code",1,"languages"]], 2],
+    languages:             ["LANGUAGES", "Ngôn ngữ", 0, 460, [["code",1]], 4],
+    products:              ["PRODUCTS", "Tem bưu điện", 1, 170, [["id",1], ["category_id",0,"categories"], ["owner_id",0,"users"]], 9, true],
+    categories:            ["CATEGORIES", "Phân loại", 1, 330, [["id",1]], 5],
+    password_resets:       ["PASSWORD_RESETS", "Quên mật khẩu", 1, 430, [["id",1], ["user_id",0,"users"]], 4],
+    order_items:           ["ORDER_ITEMS", "Dòng hàng", 2, 40, [["id",1], ["product_id",0,"products"], ["order_id",0,"orders"]], 4],
+    users:                 ["USERS", "Admin & user", 2, 298, [["id",1], ["language_code",0,"languages *"]], 13, true],
+    orders:                ["ORDERS", "Đơn hàng", 3, 84, [["id",1], ["buyer_id",0,"users"], ["seller_id",0,"users"], ["address_id",0,"addresses"], ["payment_method_id",0,"payment_methods"]], 10, true],
+    payment_methods:       ["PAYMENT_METHODS", "Thanh toán", 3, 276, [["id",1], ["user_id",0,"users"]], 8],
+    addresses:             ["ADDRESSES", "Địa chỉ", 3, 396, [["id",1], ["user_id",0,"users"]], 12],
+    conversation_members:  ["CONVERSATION_MEMBERS", "Thành viên", 3, 516, [["conversation_id",1,"conversations"], ["user_id",1,"users"]], 2],
+    messages:              ["MESSAGES", "Tin nhắn", 3, 636, [["id",1], ["conversation_id",0,"conversations"], ["sender_id",0,"users"]], 5],
+    conversations:         ["CONVERSATIONS", "Phòng chat", 4, 62, [["id",1], ["order_id",0,"orders"]], 4]
+  };
+  // [bảng FK, dòng FK, bảng PK, đường đi (điểm đầu ở dòng FK, điểm cuối ở dòng PK), có thể trống?]
+  const E = [
+    ["product_images", 1, "products", [[300,103],[325,103],[325,211],[360,211]]],
+    ["product_translations", 0, "products", [[300,211],[360,211]]],
+    ["product_translations", 1, "languages", [[40,233],[16,233],[16,501],[40,501]]],
+    ["category_translations", 1, "languages", [[40,393],[16,393],[16,501],[40,501]]],
+    ["category_translations", 0, "categories", [[300,371],[360,371]]],
+    ["products", 1, "categories", [[360,233],[338,233],[338,371],[360,371]]],
+    ["products", 2, "users", [[620,255],[660,255],[660,339],[680,339]]],
+    ["password_resets", 1, "users", [[620,493],[660,493],[660,339],[680,339]]],
+    ["order_items", 1, "products", [[680,103],[640,103],[640,211],[620,211]]],
+    ["order_items", 2, "orders", [[940,125],[1000,125]]],
+    ["orders", 1, "users", [[1000,147],[970,147],[970,339],[940,339]]],
+    ["orders", 2, "users", [[1000,169],[970,169],[970,339],[940,339]]],
+    ["payment_methods", 1, "users", [[1000,339],[940,339]]],
+    ["addresses", 1, "users", [[1000,459],[970,459],[970,339],[940,339]]],
+    ["conversation_members", 1, "users", [[1000,579],[970,579],[970,339],[940,339]]],
+    ["messages", 2, "users", [[1000,721],[970,721],[970,339],[940,339]]],
+    ["orders", 3, "addresses", [[1260,191],[1298,191],[1298,437],[1260,437]]],
+    ["orders", 4, "payment_methods", [[1260,213],[1280,213],[1280,317],[1260,317]]],
+    ["conversations", 1, "orders", [[1320,125],[1260,125]], true],
+    ["conversation_members", 0, "conversations", [[1260,557],[1600,557],[1600,103],[1580,103]]],
+    ["messages", 1, "conversations", [[1260,699],[1600,699],[1600,103],[1580,103]]]
+  ];
+  const CROSS = [];
+
+  const rowY = (top, i) => top + HEAD + ROW / 2 + ROW * i;
+  const rowBg = {};
+
+  // Bảng
+  for (const key in T) {
+    const [name, sub, c, top, rows, more, hub] = T[key];
+    const x = X[c], h = HEAD + ROW * rows.length + ROW;
+    const g = el('g', {});
+    el('rect', { class: 'frame' + (hub ? ' hub' : ''), x, y: top, width: W, height: h, rx: 4 }, null, g);
+    el('path', { class: 'head', d: `M${x+1},${top+HEAD} V${top+4} q0,-3 3,-3 H${x+W-4} q3,0 3,3 V${top+HEAD} Z` }, null, g);
+    el('text', { class: 'tname', x: x + 10, y: top + 20 }, name, g);
+    el('text', { class: 'tsub', x: x + W - 10, y: top + 20, 'text-anchor': 'end' }, sub, g);
+    rows.forEach(([col, pk, fk], i) => {
+      const y = rowY(top, i), ry = top + HEAD + ROW * i;
+      rowBg[key + ':' + i] = el('rect', { class: 'rowbg', x: x + 1, y: ry, width: W - 2, height: ROW }, null, g);
+      el('line', { class: 'sep', x1: x, x2: x + W, y1: ry, y2: ry }, null, g);
+      const badge = (bx, kind) => {
+        el('rect', { class: 'badge ' + kind, x: bx, y: y - 7, width: 20, height: 14, rx: 2 }, null, g);
+        el('text', { class: 'badge-t ' + kind, x: bx + 10, y: y + 3.5, 'text-anchor': 'middle' }, kind.toUpperCase(), g);
+      };
+      if (pk) badge(x + 8, 'pk');
+      if (fk) badge(x + 30, 'fk');
+      el('text', { class: 'cname', x: x + 56, y: y + 4 }, col, g);
+      if (fk && fk.endsWith('*')) el('text', { class: 'target', x: x + W - 10, y: y + 4, 'text-anchor': 'end' }, '→ ' + fk, g);
+    });
+    const fy = top + HEAD + ROW * rows.length;
+    el('line', { class: 'sep', x1: x, x2: x + W, y1: fy, y2: fy }, null, g);
+    el('text', { class: 'more', x: x + 10, y: fy + 15 }, `+ ${more} cột khác`, g);
+  }
+
+  // Đường nối
+  const edgeEls = [];
+  E.forEach(([from, row, to, pts, opt], i) => {
+    const g = el('g', { class: 'edge' + (opt ? ' opt' : '') });
+    const d = pts.map(p => p.join(',')).join(' ');
+    el('polyline', { class: 'ln', points: d }, null, g);
+    el('polyline', { class: 'hit', points: d }, null, g);
+    // Đầu FK: chân chim (nhiều)
+    const [a, b] = pts, s1 = Math.sign(b[0] - a[0]);
+    el('path', { d: `M${a[0] + s1 * 12},${a[1]} L${a[0]},${a[1] - 6} M${a[0] + s1 * 12},${a[1]} L${a[0]},${a[1] + 6}` }, null, g);
+    // Đầu PK: hai vạch (một)
+    const z = pts[pts.length - 1], y0 = pts[pts.length - 2], s2 = Math.sign(y0[0] - z[0]);
+    el('path', { d: `M${z[0] + s2 * 5},${z[1] - 6} v12 M${z[0] + s2 * 9},${z[1] - 6} v12` }, null, g);
+    const pkRow = rowBg[to + ':0'], fkRow = rowBg[from + ':' + row];
+    const on = (v) => { g.classList.toggle('on', v); pkRow.classList.toggle('on', v); fkRow.classList.toggle('on', v); if (v) svg.appendChild(g); };
+    edgeEls.push({ g, fkRow, on });
+    g.addEventListener('mouseenter', () => on(true));
+    g.addEventListener('mouseleave', () => on(false));
+  });
+  for (const [cx, cy] of CROSS) {
+    el('rect', { class: 'patch', x: cx - 3, y: cy - 6, width: 6, height: 12 });
+    el('line', { class: 'edge', x1: cx - 6, x2: cx + 6, y1: cy, y2: cy, style: 'pointer-events:none' });
+  }
+  // Di chuột / chạm vào dòng FK để tô sáng đường nối
+  for (const e of edgeEls) {
+    e.fkRow.style.cursor = 'pointer';
+    e.fkRow.addEventListener('mouseenter', () => e.on(true));
+    e.fkRow.addEventListener('mouseleave', () => e.on(false));
+    e.fkRow.addEventListener('click', () => { const v = !e.g.classList.contains('on'); edgeEls.forEach(o => o.on(false)); e.on(v); });
+  }
+})();
+
+const K = (k) => (k || '').split(' ').filter(Boolean).map(t => `<span class="key ${t === 'FK' ? 'fk' : ''}">${t}</span>`).join('');
+const groups = [
+  ["Tài khoản", [
+    ["users", "Người dùng & admin", [
+      ["id","bigint","PK",""],["email","string","UK","Đăng nhập"],["password_hash","string","",""],
+      ["username","string","",""],["avatar_url","string","",""],["birth_date","date","","Ngày sinh"],
+      ["location","string","","Nơi sống"],["bio","text","",""],["role","string","","admin | user"],
+      ["status","string","","active | locked"],["language_code","string","FK","Ngôn ngữ ưu tiên"],
+      ["last_login_at","timestamp","","Login cuối"],["created_at","timestamp","",""],
+      ["updated_at","timestamp","",""],["deleted_at","timestamp","","Xoá mềm"]]],
+    ["password_resets", "Quên mật khẩu", [
+      ["id","bigint","PK",""],["user_id","bigint","FK",""],["token_hash","string","",""],
+      ["expires_at","timestamp","",""],["used_at","timestamp","",""],["created_at","timestamp","",""]]],
+    ["addresses", "Địa chỉ, mỗi user nhiều", [
+      ["id","bigint","PK",""],["user_id","bigint","FK",""],["recipient_name","string","","Tên người nhận"],
+      ["phone","string","",""],["country_code","string","","VN, JP, …"],["postal_code","string","",""],
+      ["province","string","","Tỉnh / Prefecture"],["city","string","",""],["address_line1","string","",""],
+      ["address_line2","string","",""],["is_default","boolean","","Địa chỉ mặc định"],["created_at","timestamp","",""],
+      ["updated_at","timestamp","",""],["deleted_at","timestamp","","Xoá mềm"]]],
+    ["payment_methods", "Phương thức thanh toán, mỗi user nhiều", [
+      ["id","bigint","PK",""],["user_id","bigint","FK",""],["type","string","","bank_transfer | card | e_wallet | cod"],
+      ["provider","string","","Ngân hàng / hãng thẻ / ví"],["display_name","string","","Tên hiển thị"],
+      ["last4","string","","4 số cuối, không lưu số đầy đủ"],["gateway_token","string","","Token từ cổng thanh toán"],
+      ["is_default","boolean","",""],["created_at","timestamp","",""],["deleted_at","timestamp","","Xoá mềm"]]]
+  ]],
+  ["Đa ngôn ngữ", [
+    ["languages", "vi, ja, en, …", [
+      ["code","string","PK","vi, ja, en"],["name","string","",""],["is_default","boolean","",""],
+      ["is_active","boolean","",""],["sort_order","int","",""]]],
+    ["category_translations", "Tên category theo ngôn ngữ", [
+      ["category_id","bigint","PK FK",""],["language_code","string","PK FK",""],["name","string","",""],["description","text","",""]]],
+    ["product_translations", "Tên & giới thiệu tem", [
+      ["product_id","bigint","PK FK",""],["language_code","string","PK FK",""],["name","string","","Tên tem"],["description","text","","Giới thiệu"]]]
+  ]],
+  ["Tem", [
+    ["categories", "Phân loại tem", [
+      ["id","bigint","PK",""],["slug","string","UK",""],["is_active","boolean","",""],
+      ["sort_order","int","",""],["created_at","timestamp","",""],["updated_at","timestamp","",""]]],
+    ["products", "Tem bưu điện", [
+      ["id","bigint","PK",""],["owner_id","bigint","FK","Người tạo / bán"],["category_id","bigint","FK",""],
+      ["production_year","smallint","","Năm SX"],["production_month","smallint","","Tháng SX, có thể trống"],
+      ["quantity","int","","Tồn kho"],["price","decimal","","Giá bán"],["currency","string","","VND | JPY | USD"],
+      ["status","string","","published | unpublished"],["created_at","timestamp","",""],
+      ["updated_at","timestamp","",""],["deleted_at","timestamp","",""]]],
+    ["product_images", "Ảnh tem, tối đa 2", [
+      ["id","bigint","PK",""],["product_id","bigint","FK",""],["image_url","string","",""],
+      ["sort_order","smallint","","1 | 2"],["created_at","timestamp","",""]]]
+  ]],
+  ["Mua bán", [
+    ["orders", "Đơn hàng", [
+      ["id","bigint","PK",""],["order_code","string","UK",""],["buyer_id","bigint","FK","Người mua"],
+      ["seller_id","bigint","FK","Người bán"],["address_id","bigint","FK","Địa chỉ giao hàng"],
+      ["payment_method_id","bigint","FK","Phương thức thanh toán"],["shipping_name","string","","Bản sao lúc đặt"],
+      ["shipping_phone","string","","Bản sao lúc đặt"],["shipping_address","text","","Bản sao lúc đặt"],
+      ["total_amount","decimal","",""],["currency","string","",""],
+      ["status","string","","pending | confirmed | shipping | completed | cancelled"],["created_at","timestamp","",""],
+      ["completed_at","timestamp","",""],["cancelled_at","timestamp","",""]]],
+    ["order_items", "Dòng hàng trong đơn", [
+      ["id","bigint","PK",""],["order_id","bigint","FK",""],["product_id","bigint","FK",""],
+      ["product_name","string","","Snapshot lúc mua"],["quantity","int","",""],
+      ["unit_price","decimal","","Snapshot lúc mua"],["subtotal","decimal","",""]]]
+  ]],
+  ["Chat", [
+    ["conversations", "Phòng chat", [
+      ["id","bigint","PK",""],["type","string","","order | direct"],
+      ["order_id","bigint","FK UK","Chat theo đơn; trống nếu chat tự do"],
+      ["direct_key","string","UK","Chat tự do: \"id_nhỏ:id_lớn\"; trống nếu chat theo đơn"],
+      ["last_message_at","timestamp","",""],["created_at","timestamp","",""]]],
+    ["conversation_members", "Người mua & người bán", [
+      ["conversation_id","bigint","PK FK",""],["user_id","bigint","PK FK",""],
+      ["last_read_message_id","bigint","","Đánh dấu đã đọc"],["joined_at","timestamp","",""]]],
+    ["messages", "Tin nhắn", [
+      ["id","bigint","PK",""],["conversation_id","bigint","FK",""],["sender_id","bigint","FK",""],
+      ["type","string","","text | image"],["content","text","",""],["attachment_url","string","",""],
+      ["created_at","timestamp","",""],["deleted_at","timestamp","",""]]]
+  ]]
+];
+document.getElementById('groups').innerHTML = groups.map(([g, ents]) => `
+  <div><p class="group-title">${g}</p><div class="grid">${ents.map(([name, desc, cols]) => `
+    <article class="entity"><h3>${name}<span>${desc}</span></h3><table>${cols.map(([f,t,k,n]) =>
+      `<tr><td class="f">${K(k)}${f}</td><td class="t">${t}</td><td class="n">${n}</td></tr>`).join('')}</table></article>`).join('')}
+  </div></div>`).join('');
+</script>
