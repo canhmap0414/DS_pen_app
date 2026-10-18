@@ -1,12 +1,17 @@
 package com.dspen.e2e.base;
 
 import com.dspen.e2e.config.Config;
+import com.google.gson.JsonObject;
+import com.microsoft.playwright.APIResponse;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.BrowserType;
+import com.microsoft.playwright.CDPSession;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
+import com.microsoft.playwright.Route;
 import com.microsoft.playwright.Tracing;
+import com.microsoft.playwright.options.RequestOptions;
 import io.qameta.allure.Allure;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -15,6 +20,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -75,6 +81,54 @@ public abstract class BaseTest {
 
     protected boolean useAdminSession() {
         return true;
+    }
+
+    // ---- Reusable helpers ----
+
+    /** Adds latency to every request (Chromium only), e.g. to catch a loading state. */
+    protected void slowDownNetwork(int latencyMs) {
+        CDPSession cdp = context.newCDPSession(page);
+        cdp.send("Network.enable");
+        JsonObject conditions = new JsonObject();
+        conditions.addProperty("offline", false);
+        conditions.addProperty("latency", latencyMs);
+        conditions.addProperty("downloadThroughput", -1);
+        conditions.addProperty("uploadThroughput", -1);
+        cdp.send("Network.emulateNetworkConditions", conditions);
+    }
+
+    /** Makes matching requests fail as if the server were unreachable. */
+    protected void failRequests(String urlGlob) {
+        page.route(urlGlob, Route::abort);
+    }
+
+    protected void mockJsonResponse(String urlGlob, int status, String body) {
+        page.route(urlGlob, r -> r.fulfill(new Route.FulfillOptions()
+                .setStatus(status).setContentType("application/json").setBody(body)));
+    }
+
+    /** Dismisses every alert/confirm the page opens and records its message. */
+    protected List<String> collectDialogs() {
+        List<String> dialogs = new ArrayList<>();
+        page.onDialog(d -> {
+            dialogs.add(d.message());
+            d.dismiss();
+        });
+        return dialogs;
+    }
+
+    /** Registers a normal (non-admin) user through the public API; an existing email is reused. */
+    protected void ensureUser(String email, String password, String username) {
+        APIResponse res = context.request().post("/api/v1/auth/register",
+                RequestOptions.create().setData(Map.of("email", email, "password", password, "username", username)));
+        if (res.status() != 201 && res.status() != 409) {
+            throw new IllegalStateException("Register " + email + " failed: HTTP " + res.status() + " " + res.text());
+        }
+    }
+
+    protected boolean hasHorizontalScroll() {
+        return (Boolean) page.evaluate(
+                "() => document.documentElement.scrollWidth > document.documentElement.clientWidth");
     }
 
     void attachEvidence(String testName) {

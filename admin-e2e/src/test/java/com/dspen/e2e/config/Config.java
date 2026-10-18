@@ -25,6 +25,15 @@ public final class Config {
         return required("E2E_ADMIN_PASSWORD");
     }
 
+    /** A locked admin account (status = locked); tests that need it are skipped when unset. */
+    public static String lockedEmail() {
+        return get("E2E_LOCKED_EMAIL", "");
+    }
+
+    public static String lockedPassword() {
+        return get("E2E_LOCKED_PASSWORD", "");
+    }
+
     public static boolean headless() {
         return Boolean.parseBoolean(get("HEADLESS", "true"));
     }
